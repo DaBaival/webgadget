@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程倒计时</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        /* LED 效果样式 */
+        .led-clock,
+        .led-countdown {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            font-size: 2em;
+            background-color: #222;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .led-clock .digit,
+        .led-countdown .digit {
+            display: inline-block;
+            padding: 5px;
+            margin: 0 2px;
+            background-color: #000;
+            color: #ff0000;
+            border-radius: 4px;
+            text-shadow: 0 0 5px #ff0000;
+            font-weight: bold;
+        }
+
+        .led-clock .colon,
+        .led-countdown .colon {
+            display: inline-block;
+            margin: 0 5px;
+            color: #ff0000;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .led-countdown .text {
+            color: #fff;
+            margin: 0 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px auto;
+                padding: 15px;
+            }
+            
+            .led-clock, .led-countdown {
+                font-size: 1.5em;
+                padding: 8px;
+            }
+            
+            table th, table td {
+                padding: 8px 5px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>课 程 倒 计 时</h1>
+        <!-- LED 服务器时间 -->
+        <div class="led-clock">
+            <span class="digit" id="hour-tens">0</span>
+            <span class="digit" id="hour-units">0</span>
+            <span class="colon">:</span>
+            <span class="digit" id="minute-tens">0</span>
+            <span class="digit" id="minute-units">0</span>
+            <span class="colon">:</span>
+            <span class="digit" id="second-tens">0</span>
+            <span class="digit" id="second-units">0</span>
+        </div>
+        <!-- LED 倒计时 -->
+        <div class="led-countdown">
+            <span class="text">第</span>
+            <span class="digit" id="class-number">0</span>
+            <span class="text">节</span>
+            <span class="text" id="action">上课</span>
+            <span class="text">还有</span>
+            <span class="digit" id="minutes-left">00</span>
+            <span class="text">分</span>
+            <span class="digit" id="seconds-left">00</span>
+            <span class="text">秒</span>
+        </div>
+        
+        <table id="schedule-table">
+            <thead>
+                <tr>
+                    <th>节数</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                </tr>
+            </thead>
+            <tbody id="schedule-body">
+                <!-- 动态生成课程表 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 课程数据管理
+        const scheduleData = [
+            { section: 1,  start: "08:25", end: "09:10" },
+            { section: 2,  start: "09:15", end: "10:00" },
+            { section: 3,  start: "10:10", end: "10:55" },
+            { section: 4,  start: "11:00", end: "11:45" },
+            { section: 5,  start: "13:50", end: "14:35" },
+            { section: 6,  start: "14:40", end: "15:25" },
+            { section: 7,  start: "15:35", end: "16:20" },
+            { section: 8,  start: "16:25", end: "17:10" },
+            { section: 9,  start: "18:30", end: "19:15" },
+            { section: 10, start: "19:25", end: "20:10" },
+            { section: 11, start: "20:20", end: "21:05" },
+            { section: 12, start: "21:15", end: "22:00" }
+        ];
+
+        // 动态生成课程表
+        function renderSchedule() {
+            const tbody = document.getElementById('schedule-body');
+            tbody.innerHTML = scheduleData.map(item => `
+                <tr>
+                    <td>第 ${item.section} 节</td>
+                    <td>${item.start}</td>
+                    <td>${item.end}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 时间计算器
+        class TimeCalculator {
+            static parseTime(timeStr) {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 3600 + m * 60;
+            }
+
+            static formatTime(totalSeconds) {
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                
+                return {
+                    hours: String(hours).padStart(2, '0'),
+                    minutes: String(minutes).padStart(2, '0'),
+                    seconds: String(seconds).padStart(2, '0')
+                };
+            }
+
+            static getCurrentClass(currentTime) {
+                // 检查是否在上课时间段内
+                for (let i = 0; i < scheduleData.length; i++) {
+                    const start = this.parseTime(scheduleData[i].start);
+                    const end = this.parseTime(scheduleData[i].end);
+                    
+                    if (currentTime >= start && currentTime < end) {
+                        return { 
+                            class: scheduleData[i].section,
+                            remaining: end - currentTime,
+                            isClassTime: true
+                        };
+                    }
+                }
+                
+                // 检查下一节课
+                for (let i = 0; i < scheduleData.length; i++) {
+                    const start = this.parseTime(scheduleData[i].start);
+                    if (currentTime < start) {
+                        return {
+                            class: scheduleData[i].section,
+                            remaining: start - currentTime,
+                            isClassTime: false
+                        };
+                    }
+                }
+                
+                // 非上课时间
+                return { class: 0, remaining: 0, isClassTime: false };
+            }
+        }
+
+        // 更新LED时钟显示
+        function updateClockDisplay(timeStr) {
+            const [hours, minutes, seconds] = timeStr.split(':');
+            document.getElementById("hour-tens").textContent = hours[0];
+            document.getElementById("hour-units").textContent = hours[1];
+            document.getElementById("minute-tens").textContent = minutes[0];
+            document.getElementById("minute-units").textContent = minutes[1];
+            document.getElementById("second-tens").textContent = seconds[0];
+            document.getElementById("second-units").textContent = seconds[1];
+        }
+
+        // 更新倒计时显示
+        function updateCountdownDisplay(currentClass, remaining, isClassTime) {
+            const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+            const secs = String(remaining % 60).padStart(2, '0');
+            
+            const classNumber = document.getElementById('class-number');
+            const action = document.getElementById('action');
+            const minutesLeft = document.getElementById('minutes-left');
+            const secondsLeft = document.getElementById('seconds-left');
+            
+            if (currentClass === 0) {
+                classNumber.textContent = '-';
+                action.textContent = '今日课程已结束';
+                minutesLeft.textContent = '--';
+                secondsLeft.textContent = '--';
+            } else {
+                classNumber.textContent = currentClass;
+                action.textContent = isClassTime ? '下课' : '上课';
+                minutesLeft.textContent = mins;
+                secondsLeft.textContent = secs;
+            }
+        }
+
+        // 主更新函数
+        async function updateTime() {
+            try {
+                // 获取服务器时间（模拟）
+                const now = new Date();
+                const timeStr = TimeCalculator.formatTime(now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds());
+                updateClockDisplay(`${timeStr.hours}:${timeStr.minutes}:${timeStr.seconds}`);
+                
+                const currentTime = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                const { class: currentClass, remaining, isClassTime } = TimeCalculator.getCurrentClass(currentTime);
+                
+                updateCountdownDisplay(currentClass, remaining, isClassTime);
+
+            } catch (error) {
+                console.error('时间更新失败:', error);
+            }
+        }
+
+        // 初始化函数
+        function init() {
+            // 渲染课程表
+            renderSchedule();
+            
+            // 启动定时更新
+            setInterval(updateTime, 1000);
+            updateTime();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
